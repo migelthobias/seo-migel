@@ -1,0 +1,2 @@
+# seo-migel
+web
