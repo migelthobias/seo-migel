@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migel - Search Engine Barcelona</title>
+    <link rel="stylesheet" href="global.css"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        /* ============================================================
+           RESULTS & SEARCH ENGINE STYLES
+        ============================================================ */
+
+        /* Suggestions dropdown */
+        .suggestions-box {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid rgba(2, 0, 150, 0.2);
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 100;
+            overflow: hidden;
+            margin-top: -2px;
+        }
+
+        .suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(2, 0, 150, 0.05);
+        }
+
+        .suggestion-item strong {
+            color: var(--color-blue-primary);
+        }
+
+        /* Results Container */
+        .results-container {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 20px 20px 60px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .results-header {
+            padding: 8px 4px 16px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .results-count strong { color: var(--color-blue-primary); }
+        .results-count em { font-style: italic; color: #333; }
+
+        /* Results Grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .results-grid.single {
+            grid-template-columns: 1fr;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Result Card */
+        .result-card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--color-blue-primary);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .result-card:hover {
+            border-color: rgba(2, 0, 150, 0.3);
+            box-shadow: 0 8px 24px rgba(2, 0, 150, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .result-card:hover::before {
+            opacity: 1;
+        }
+
+        .result-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .result-card__icon {
+            font-size: 28px;
+        }
+
+        .result-card__meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .result-category {
+            font-size: 11px;
+            background: rgba(2, 0, 150, 0.08);
+            color: var(--color-blue-primary);
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-stars {
+            font-size: 12px;
+        }
+
+        .result-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1a0aab;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .result-title strong {
+            background: #fff3cd;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        .result-url {
+            font-size: 12px;
+            color: #388e3c;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .result-desc {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.55;
+            margin-bottom: 12px;
+        }
+
+        .result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            font-size: 11px;
+            background: #f0f0f0;
+            color: #555;
+            padding: 2px 8px;
+            border-radius: 99px;
+        }
+
+        /* No Results */
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-results__icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .no-results h3 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .no-results p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .show-all-btn {
+            background: var(--color-blue-primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .show-all-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* ============================================================
+           MODAL STYLES
+        ============================================================ */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 560px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: 1px solid #ddd;
+            width: 32px;
+            height: 32px;
+            border-radius: 99px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #f5f5f5;
+            border-color: #bbb;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .modal-icon {
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .modal-category {
+            font-size: 12px;
+            background: rgba(2, 0, 150, 0.08);
+            color: var(--color-blue-primary);
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #1a0aab;
+        }
+
+        .modal-desc {
+            font-size: 15px;
+            color: #444;
+            line-height: 1.65;
+            margin-bottom: 20px;
+            border-left: 3px solid rgba(2, 0, 150, 0.2);
+            padding-left: 14px;
+        }
+
+        .modal-details {
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .modal-details h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .modal-details ul li {
+            font-size: 14px;
+            color: #555;
+            padding: 5px 0;
+            border-bottom: 1px solid #eef;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-details ul li:last-child {
+            border-bottom: none;
+        }
+
+        .modal-details ul li::before {
+            content: '✓';
+            color: var(--color-blue-primary);
+            font-weight: 700;
+        }
+
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--color-blue-primary);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: opacity 0.2s;
+            text-decoration: none;
+        }
+
+        .modal-link:hover {
+            opacity: 0.85;
+            text-decoration: none;
+        }
+
+        .modal-rating {
+            font-size: 20px;
+        }
+
+        /* Search input position fix for suggestions */
+        .search__input {
+            position: relative;
+        }
+
+        /* Animated search button */
+        #searchBtn, #aboutBtn {
+            transition: all 0.2s ease;
+        }
+
+        #searchBtn:hover {
+            background: var(--color-blue-primary);
+            color: white;
+        }
+
+        #aboutBtn:hover {
+            background: #f5f5f5;
+        }
+
+        /* Responsive */
+        @media screen and (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-title {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header__right">
+            <a href="#" onclick="showAllResults(); return false;" title="Home">
+                <span class="material-icons">home</span>
+            </a>
+            <a href="#" onclick="showCategories(); return false;" title="Kategori">
+                <span class="material-icons">apps</span>
+            </a>
+            <a href="#" title="Akun">
+                <span class="material-icons">account_circle</span>
+            </a>
+        </div>
+    </header>
+
+    <section>
+        <div class="feature">
+            <img src="migel.png" alt="Migel Logo"/>
+
+            <div class="search">
+                <div class="search__input">
+                    <span class="material-icons">search</span>
+                    <input id="searchInput" placeholder="Cari tentang Barcelona..." autocomplete="off"/>
+                    <span class="material-icons photo" title="Jelajahi Semua">travel_explore</span>
+                </div>
+
+                <div class="search__action">
+                    <button onclick="search()" id="searchBtn">Penelusuran Migel</button>
+                    <button onclick="about()" id="aboutBtn">Saya lagi beruntung</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    // ============================================================
+    //  DATABASE BARCELONA - 15 ENTRI
+    // ============================================================
+    const barcelonaDatabase = [
+      {
+        id: 1,
+        title: "FC Barcelona",
+        category: "Klub Sepak Bola",
+        icon: "⚽",
+        tags: ["barcelona", "fc barcelona", "barca", "sepak bola", "klub", "football", "camp nou"],
+        description: "FC Barcelona adalah klub sepak bola Spanyol yang didirikan pada tahun 1899. Dikenal dengan motto 'Més que un club' (Lebih dari sebuah klub), Barça telah memenangkan 5 gelar Liga Champions UEFA dan merupakan salah satu klub terkaya dan paling berpengaruh di dunia.",
+        details: ["Didirikan: 29 November 1899","Stadion: Spotify Camp Nou (kapasitas 99.354)","Warna: Biru dan Merah (Blaugrana)","Gelar La Liga: 27 kali","Pemain legendaris: Messi, Xavi, Iniesta, Puyol"],
+        url: "https://www.fcbarcelona.com",
+        rating: 5,
+      },
+      {
+        id: 2,
+        title: "Sagrada Família",
+        category: "Tempat Wisata",
+        icon: "⛪",
+        tags: ["sagrada familia", "gereja", "wisata", "gaudi", "barcelona", "arsitektur", "basilika"],
+        description: "Basilika Sagrada Família adalah mahakarya arsitektur karya Antoni Gaudí yang masih dalam proses pembangunan sejak 1882. Gereja ini merupakan ikon utama Barcelona dan menjadi salah satu tempat wisata paling dikunjungi di dunia dengan lebih dari 4,5 juta pengunjung per tahun.",
+        details: ["Mulai dibangun: 1882","Arsitek: Antoni Gaudí","Status: Situs Warisan Dunia UNESCO","Tinggi menara: 172.5 meter (saat selesai)","Pengunjung/tahun: 4.5 juta orang"],
+        url: "https://sagradafamilia.org",
+        rating: 5,
+      },
+      {
+        id: 3,
+        title: "Las Ramblas",
+        category: "Tempat Rekreasi",
+        icon: "🚶",
+        tags: ["las ramblas", "ramblas", "jalan", "wisata", "barcelona", "belanja", "kuliner"],
+        description: "Las Ramblas adalah boulevard ikonik sepanjang 1,2 km di jantung kota Barcelona. Jalan yang selalu ramai ini menghubungkan Plaça de Catalunya dengan pantai Port Vell. Dipenuhi seniman jalanan, penjual bunga, kafe, dan restoran yang menjadikannya jantung kehidupan Barcelona.",
+        details: ["Panjang: 1,2 kilometer","Lokasi: Pusat Kota Barcelona","Terkenal: Pasar La Boqueria","Atraksi: Seniman jalanan & Human Statues","Buka: 24 jam sehari"],
+        url: "https://www.barcelona.cat",
+        rating: 4,
+      },
+      {
+        id: 4,
+        title: "Park Güell",
+        category: "Taman & Rekreasi",
+        icon: "🌿",
+        tags: ["park guell", "taman", "gaudi", "wisata", "barcelona", "mosaik", "alam"],
+        description: "Park Güell adalah taman umum yang dirancang oleh Antoni Gaudí, terletak di bukit Carmel Barcelona. Taman ini menampilkan mosaik warna-warni yang ikonik, struktur arsitektur unik, dan pemandangan panorama kota Barcelona yang spektakuler. Ditetapkan sebagai Situs Warisan Dunia UNESCO.",
+        details: ["Dirancang: Antoni Gaudí (1900-1914)","Luas: 17,18 hektar","Status: UNESCO World Heritage Site","Jam buka: 09:30 - 19:30","Tiket: €10 (zona monumental)"],
+        url: "https://parkguell.barcelona",
+        rating: 5,
+      },
+      {
+        id: 5,
+        title: "Camp Nou",
+        category: "Stadion",
+        icon: "🏟️",
+        tags: ["camp nou", "stadion", "barcelona", "fc barcelona", "sepak bola", "barca"],
+        description: "Camp Nou (Spotify Camp Nou untuk keperluan sponsor) adalah stadion sepak bola terbesar di Eropa dan markas FC Barcelona. Stadion megah ini berkapasitas 99.354 penonton dan menjadi saksi ribuan momen bersejarah sepak bola dunia sejak pembukaannya pada 1957.",
+        details: ["Kapasitas: 99.354 penonton","Dibuka: 24 September 1957","Terbesar di: Eropa","Museum: FC Barcelona Museum (tervisit ke-2 di Spanyol)","Lokasi: Les Corts, Barcelona"],
+        url: "https://www.fcbarcelona.com/en/camp-nou",
+        rating: 5,
+      },
+      {
+        id: 6,
+        title: "Barceloneta Beach",
+        category: "Pantai & Rekreasi",
+        icon: "🏖️",
+        tags: ["barceloneta", "pantai", "beach", "barcelona", "laut", "rekreasi", "renang"],
+        description: "Barceloneta adalah pantai paling terkenal di Barcelona, terletak hanya beberapa menit berjalan dari pusat kota. Pantai sepanjang 1,1 km ini selalu ramai dengan wisatawan dan warga lokal yang menikmati sinar matahari, olahraga air, dan restoran seafood pinggir pantai.",
+        details: ["Panjang: 1,1 kilometer","Akses: Metro L4 (Barceloneta)","Fasilitas: Toilet, shower, penyewaan kursi","Olahraga: Voli pantai, kayak, selancar","Terbaik dikunjungi: Juni - September"],
+        url: "https://www.barcelona.cat/en/",
+        rating: 4,
+      },
+      {
+        id: 7,
+        title: "Museu Picasso",
+        category: "Museum & Seni",
+        icon: "🎨",
+        tags: ["picasso", "museum", "seni", "barcelona", "lukisan", "art", "budaya"],
+        description: "Museu Picasso adalah museum yang didedikasikan untuk karya Pablo Picasso, salah satu pelukis paling berpengaruh abad ke-20. Terletak di gedung abad pertengahan di kawasan Gothic Quarter, museum ini menyimpan lebih dari 4.000 karya yang menceritakan perjalanan seni Picasso.",
+        details: ["Koleksi: 4.251+ karya seni","Dibuka: 9 Maret 1963","Lokasi: El Born / Gothic Quarter","Jam buka: Selasa-Minggu 10:00-20:00","Tiket: €12 dewasa"],
+        url: "https://museupicasso.bcn.cat",
+        rating: 4,
+      },
+      {
+        id: 8,
+        title: "Mercat de la Boqueria",
+        category: "Pasar & Kuliner",
+        icon: "🛒",
+        tags: ["boqueria", "pasar", "market", "barcelona", "makanan", "kuliner", "belanja"],
+        description: "Mercat de Sant Josep de la Boqueria, atau La Boqueria, adalah pasar publik terbesar dan terkenal di Barcelona yang terletak di sepanjang Las Ramblas. Sejak abad ke-13, pasar warna-warni ini menawarkan buah segar, seafood, daging, rempah-rempah, dan berbagai produk lokal Katalunya.",
+        details: ["Berdiri sejak: Abad ke-13","Lokasi: Las Ramblas, Barcelona","Luas: 2.583 meter persegi","Jumlah stan: 300+ pedagang","Jam buka: Sen-Sab 08:00-20:30"],
+        url: "https://www.boqueria.barcelona",
+        rating: 4,
+      },
+      {
+        id: 9,
+        title: "Gothic Quarter (Barri Gòtic)",
+        category: "Kawasan Bersejarah",
+        icon: "🏛️",
+        tags: ["gothic quarter", "barri gotic", "bersejarah", "barcelona", "wisata", "arsitektur"],
+        description: "Gothic Quarter adalah kawasan tertua dan paling bersejarah di Barcelona, yang mengandung sisa-sisa kota Romawi kuno Barcino. Labirin jalan sempit berbatu ini dihiasi gereja-gereja gothic abad pertengahan, plaza kecil yang menawan, dan bangunan-bangunan bersejarah yang menceritakan lebih dari 2.000 tahun sejarah.",
+        details: ["Usia: 2.000+ tahun (bekas Barcino Romawi)","Kawasan: 1 km² di pusat kota","Landmark: Katedral Barcelona, Plaça Reial","Daya tarik: Arsitektur Gotik & Romawi","Terbaik: Jalan kaki malam hari"],
+        url: "https://www.barcelona.cat",
+        rating: 5,
+      },
+      {
+        id: 10,
+        title: "Tibidabo Amusement Park",
+        category: "Taman Hiburan",
+        icon: "🎡",
+        tags: ["tibidabo", "taman hiburan", "amusement park", "barcelona", "rekreasi", "keluarga"],
+        description: "Tibidabo adalah taman hiburan tertua di Spanyol, terletak di puncak Gunung Tibidabo setinggi 512 meter di atas Barcelona. Dibuka sejak 1901, taman ini menawarkan wahana klasik bersejarah dan modern, ditambah pemandangan panorama kota Barcelona dan Laut Mediterania yang luar biasa.",
+        details: ["Dibuka: 1901 (tertua di Spanyol)","Ketinggian: 512 meter dpl","Wahana: 25+ atraksi","Landmark: Temple Expiatori del Sagrat Cor","Akses: Tram biru + funicular"],
+        url: "https://www.tibidabo.cat",
+        rating: 4,
+      },
+      {
+        id: 11,
+        title: "Casa Batlló",
+        category: "Arsitektur & Wisata",
+        icon: "🏠",
+        tags: ["casa batllo", "gaudi", "arsitektur", "barcelona", "wisata", "rumah"],
+        description: "Casa Batlló adalah salah satu mahakarya Antoni Gaudí yang terletak di Passeig de Gràcia. Dibangun ulang antara 1904-1906, bangunan ini terkenal dengan fasadnya yang menyerupai kulit naga dengan mosaik berwarna-warni dan balkon berbentuk tulang. Dijuluki 'Casa dels Ossos' (Rumah Tulang).",
+        details: ["Dibangun: 1904-1906","Arsitek: Antoni Gaudí","Lokasi: Passeig de Gràcia 43","Status: UNESCO World Heritage Site","Tiket: €35 (dengan audio guide)"],
+        url: "https://www.casabatllo.es",
+        rating: 5,
+      },
+      {
+        id: 12,
+        title: "Montjuïc Castle",
+        category: "Kastil & Sejarah",
+        icon: "🏰",
+        tags: ["montjuic", "kastil", "castle", "barcelona", "sejarah", "wisata", "benteng"],
+        description: "Castell de Montjuïc adalah benteng militer historis yang berdiri di puncak bukit Montjuïc setinggi 173 meter, menghadap pelabuhan Barcelona. Dibangun abad ke-17, benteng ini kini berfungsi sebagai museum militer dan taman dengan pemandangan indah kota Barcelona dan pelabuhan.",
+        details: ["Dibangun: Abad ke-17","Ketinggian: 173 meter dpl","Fungsi kini: Museum & Taman","Akses: Cable car dari Barceloneta","Jam buka: 10:00-18:00 (musim dingin)"],
+        url: "https://ajuntament.barcelona.cat/castelldemontjuic",
+        rating: 4,
+      },
+      {
+        id: 13,
+        title: "RCD Espanyol",
+        category: "Klub Sepak Bola",
+        icon: "⚽",
+        tags: ["espanyol", "rcd espanyol", "sepak bola", "barcelona", "klub", "periquitos"],
+        description: "RCD Espanyol de Barcelona adalah klub sepak bola lain yang berbasis di Barcelona. Didirikan pada 1900, klub berjuluk 'Periquitos' ini bermain di RCDE Stadium di Cornellà-El Prat. Espanyol adalah rival abadi FC Barcelona dalam derby Barcelona yang dikenal sebagai El Derbi Barceloní.",
+        details: ["Didirikan: 28 Oktober 1900","Stadion: RCDE Stadium (40.000 kursi)","Julukan: Periquitos / Blanquiazules","Warna: Biru dan Putih","Derby vs Barça: El Derbi Barceloní"],
+        url: "https://www.rcdespanyol.com",
+        rating: 3,
+      },
+      {
+        id: 14,
+        title: "Palau de la Música Catalana",
+        category: "Seni & Budaya",
+        icon: "🎶",
+        tags: ["palau musica", "musik", "concert hall", "barcelona", "seni", "arsitektur", "budaya"],
+        description: "Palau de la Música Catalana adalah gedung konser megah berarsitektur Modernisme Katalunya karya Lluís Domènech i Montaner, dibangun antara 1905-1908. UNESCO menetapkannya sebagai Situs Warisan Dunia. Gedung konser aktif ini terkenal dengan kaca patri raksasa dan dekorasi bunga yang memenuhi seluruh interiornya.",
+        details: ["Dibangun: 1905-1908","Arsitek: Lluís Domènech i Montaner","Kapasitas: 2.200 penonton","Status: UNESCO World Heritage Site","Program: 300+ konser per tahun"],
+        url: "https://www.palaumusica.cat",
+        rating: 5,
+      },
+      {
+        id: 15,
+        title: "Aquàrium de Barcelona",
+        category: "Hiburan Keluarga",
+        icon: "🐠",
+        tags: ["aquarium", "akuarium", "barcelona", "ikan", "rekreasi", "keluarga", "laut"],
+        description: "Aquàrium de Barcelona adalah salah satu akuarium terbesar di Eropa, terletak di pelabuhan Port Vell. Menawarkan pengalaman menakjubkan dengan terowongan bawah air sepanjang 80 meter yang dikelilingi hiu, ikan pari, dan ribuan spesies laut. Rumah bagi 11.000 makhluk laut dari 450 spesies.",
+        details: ["Dibuka: 1995","Koleksi: 11.000 hewan dari 450 spesies","Terowongan bawah air: 80 meter","Lokasi: Port Vell, Barcelona","Tiket: €20 dewasa, €15 anak"],
+        url: "https://www.aquariumbcn.com",
+        rating: 4,
+      },
+    ];
+
+    // ============================================================
+    //  SEARCH ENGINE
+    // ============================================================
+    const searchEngine = {
+      search(query) {
+        if (!query || query.trim() === "") return [];
+        const q = query.toLowerCase().trim();
+        const scored = barcelonaDatabase.map((item) => {
+          let score = 0;
+          if (item.title.toLowerCase() === q) score += 100;
+          if (item.title.toLowerCase().includes(q)) score += 50;
+          if (item.category.toLowerCase().includes(q)) score += 30;
+          item.tags.forEach((tag) => {
+            if (tag.includes(q)) score += 20;
+            if (q.includes(tag)) score += 10;
+          });
+          if (item.description.toLowerCase().includes(q)) score += 5;
+          return { ...item, score };
+        });
+        return scored.filter((i) => i.score > 0).sort((a, b) => b.score - a.score);
+      },
+      getAll() { return barcelonaDatabase; },
+      getRandom() { return barcelonaDatabase[Math.floor(Math.random() * barcelonaDatabase.length)]; },
+      getSuggestions(query) {
+        if (!query || query.length < 2) return [];
+        const q = query.toLowerCase();
+        const suggestions = new Set();
+        barcelonaDatabase.forEach((item) => {
+          if (item.title.toLowerCase().includes(q)) suggestions.add(item.title);
+          item.tags.forEach((tag) => { if (tag.includes(q)) suggestions.add(item.title); });
+        });
+        return Array.from(suggestions).slice(0, 5);
+      },
+    };
+
+    // ============================================================
+    //  UI CONTROLLER
+    // ============================================================
+
+    function highlightMatch(text, query) {
+      if (!query) return text;
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
+      return text.replace(regex, "<strong>$1</strong>");
+    }
+
+    function ensureResultsContainer() {
+      let container = document.getElementById("resultsContainer");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "resultsContainer";
+        container.className = "results-container";
+        document.querySelector("section").insertAdjacentElement("afterend", container);
+      }
+      return container;
+    }
+
+    function renderResultCard(item, query) {
+      const highlightedTitle = query ? highlightMatch(item.title, query) : item.title;
+      const stars = "⭐".repeat(item.rating) + "☆".repeat(5 - item.rating);
+      return `
+        <div class="result-card" onclick="openResult(${item.id})">
+          <div class="result-card__header">
+            <div class="result-card__icon">${item.icon}</div>
+            <div class="result-card__meta">
+              <span class="result-category">${item.category}</span>
+              <span class="result-stars">${stars}</span>
+            </div>
+          </div>
+          <h3 class="result-title">${highlightedTitle}</h3>
+          <p class="result-url">${item.url}</p>
+          <p class="result-desc">${item.description.substring(0, 150)}...</p>
+          <div class="result-tags">
+            ${item.tags.slice(0, 4).map((t) => `<span class="tag">${t}</span>`).join("")}
+          </div>
+        </div>`;
+    }
+
+    function renderResults(results, query) {
+      const container = ensureResultsContainer();
+      const totalTime = (Math.random() * 0.4 + 0.1).toFixed(2);
+      container.innerHTML = `
+        <div class="results-header">
+          <span class="results-count">
+            Sekitar <strong>${results.length}</strong> hasil 
+            ${query ? `untuk "<em>${query}</em>"` : "tentang Barcelona"} 
+            (${totalTime} detik)
+          </span>
+        </div>
+        <div class="results-grid">
+          ${results.map((item) => renderResultCard(item, query)).join("")}
+        </div>`;
+      container.classList.add("visible");
+      container.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function showNoResults(query) {
+      const container = ensureResultsContainer();
+      container.innerHTML = `
+        <div class="no-results">
+          <div class="no-results__icon">🔍</div>
+          <h3>Tidak ada hasil untuk "<strong>${query}</strong>"</h3>
+          <p>Coba: <em>barcelona, gaudi, barca, pantai, museum, klub</em></p>
+          <button onclick="showAllResults()" class="show-all-btn">Tampilkan Semua 15 Hasil</button>
+        </div>`;
+      container.classList.add("visible");
+    }
+
+    // SEARCH
+    function search() {
+      const query = document.getElementById("searchInput").value.trim();
+      hideSuggestions();
+      if (!query) { showAllResults(); return; }
+      const results = searchEngine.search(query);
+      results.length === 0 ? showNoResults(query) : renderResults(results, query);
+    }
+
+    // I'M FEELING LUCKY
+    function about() {
+      hideSuggestions();
+      const item = searchEngine.getRandom();
+      const container = ensureResultsContainer();
+      container.innerHTML = `
+        <div class="results-header">
+          <span class="results-count">🎲 Keberuntungan membawamu ke...</span>
+        </div>
+        <div class="results-grid single">
+          ${renderResultCard(item, "")}
+        </div>`;
+      container.classList.add("visible");
+      container.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // SHOW ALL
+    function showAllResults() {
+      renderResults(searchEngine.getAll(), "");
+    }
+
+    // SHOW CATEGORIES
+    function showCategories() {
+      const container = ensureResultsContainer();
+      const categories = [...new Set(barcelonaDatabase.map(i => i.category))];
+      container.innerHTML = `
+        <div class="results-header">
+          <span class="results-count">Semua <strong>${categories.length}</strong> Kategori Tentang Barcelona</span>
+        </div>
+        <div class="results-grid">
+          ${categories.map(cat => {
+            const items = barcelonaDatabase.filter(i => i.category === cat);
+            return `
+              <div class="result-card" onclick="filterByCategory('${cat}')">
+                <div class="result-card__header">
+                  <div class="result-card__icon">${items[0].icon}</div>
+                  <div class="result-card__meta">
+                    <span class="result-category">${items.length} item</span>
+                  </div>
+                </div>
+                <h3 class="result-title">${cat}</h3>
+                <p class="result-desc">${items.map(i => i.title).join(', ')}</p>
+              </div>`;
+          }).join('')}
+        </div>`;
+      container.classList.add("visible");
+      container.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function filterByCategory(cat) {
+      const results = barcelonaDatabase.filter(i => i.category === cat);
+      renderResults(results, cat);
+    }
+
+    // MODAL
+    function openResult(id) {
+      const item = barcelonaDatabase.find((i) => i.id === id);
+      if (!item) return;
+      const modal = document.createElement("div");
+      modal.className = "modal-overlay";
+      modal.innerHTML = `
+        <div class="modal-content">
+          <button class="modal-close" onclick="closeModal()">✕</button>
+          <div class="modal-header">
+            <div class="modal-icon">${item.icon}</div>
+            <div>
+              <span class="modal-category">${item.category}</span>
+              <h2 class="modal-title">${item.title}</h2>
+            </div>
+          </div>
+          <p class="modal-desc">${item.description}</p>
+          <div class="modal-details">
+            <h4>📋 Detail Informasi</h4>
+            <ul>${item.details.map((d) => `<li>${d}</li>`).join("")}</ul>
+          </div>
+          <div class="modal-footer">
+            <a href="${item.url}" target="_blank" class="modal-link">
+              <span class="material-icons">open_in_new</span> Kunjungi Website
+            </a>
+            <span class="modal-rating">${"⭐".repeat(item.rating)}</span>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+      setTimeout(() => modal.classList.add("visible"), 10);
+    }
+
+    function closeModal() {
+      const modal = document.querySelector(".modal-overlay");
+      if (modal) {
+        modal.classList.remove("visible");
+        setTimeout(() => modal.remove(), 300);
+      }
+    }
+
+    // SUGGESTIONS
+    function createSuggestionsBox() {
+      let box = document.getElementById("suggestionsBox");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "suggestionsBox";
+        box.className = "suggestions-box";
+        const searchInput = document.querySelector(".search__input");
+        searchInput.style.position = "relative";
+        const wrapper = document.querySelector(".search");
+        wrapper.style.position = "relative";
+        searchInput.insertAdjacentElement("afterend", box);
+      }
+      return box;
+    }
+
+    function showSuggestions(query) {
+      const box = createSuggestionsBox();
+      const suggestions = searchEngine.getSuggestions(query);
+      if (suggestions.length === 0) { hideSuggestions(); return; }
+      box.innerHTML = suggestions.map((s) =>
+        `<div class="suggestion-item" onclick="selectSuggestion('${s.replace(/'/g,"\\'")}')">
+          <span class="material-icons" style="font-size:16px;margin-right:8px;opacity:0.5">search</span>
+          ${highlightMatch(s, query)}
+        </div>`
+      ).join("");
+      box.style.display = "block";
+    }
+
+    function hideSuggestions() {
+      const box = document.getElementById("suggestionsBox");
+      if (box) box.style.display = "none";
+    }
+
+    function selectSuggestion(text) {
+      document.getElementById("searchInput").value = text;
+      hideSuggestions();
+      search();
+    }
+
+    // EVENT LISTENERS
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      const val = e.target.value;
+      val.length >= 2 ? showSuggestions(val) : hideSuggestions();
+    });
+
+    document.getElementById("searchInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") search();
+      if (e.key === "Escape") hideSuggestions();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search")) hideSuggestions();
+    });
+
+    document.querySelector(".photo").addEventListener("click", () => showAllResults());
+    </script>
+</body>
+</html>
